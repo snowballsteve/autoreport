@@ -12,7 +12,7 @@ Input layer is a point, comparison layer are states.
 - Template text: Location is in {state_name}
 - Replaced with: Locaton is in New York.
 
-To see what the tool does look in the example folder, run the tool using gps_points as the input layer and template.md as the template file
+To see what the tool does look in the example folder, run the tool using gps_points as the input layer and template.md as the template file. It will produce the snowballsteve_Montana.md file
 
 ##License
 You are free to do whatever you want with this tool provided you inform the author. A github fork notification is sufficient. Feel free to create issues or pull requests.
