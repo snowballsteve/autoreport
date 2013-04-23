@@ -1,0 +1,258 @@
+'''
+  AutoReport script
+  Usage -- ./autoReport.py inputLayer OutputFolder
+  
+  Author -- Steven C. Porter
+  Version -- 4
+    
+'''
+import arcpy, sys, os, geoMethods, datetime, math, locale
+from geoMethods import geoProcessor
+from geoMethods import templateParser
+
+
+#import the config file
+from config import *
+
+
+#get inputs
+arguments = {}
+dataPath['in_layer'] = arcpy.GetParameter(0)
+outputFolder = arcpy.GetParameterAsText(1)
+templatefile = ""
+standardTextFile = ''
+
+def autorun():
+	'''
+		This function controls the process if this python script is run as main (which is the intended purpose)
+	'''
+	
+	
+	if not checkInputs():
+		arcpy.AddError("Input Error")
+		sys.exit(1)  #inputs did not check out, abort
+		
+	rows = arcpy.SearchCursor(dataPath['in_layer'])
+	for row in rows:
+		#lets create the geoProcessor object
+		auto_gp = geoProcessor(row.Shape)
+		
+		#config our problem type
+		problemType = row.getValue(templateToUseField).lower()	
+		arcpy.AddMessage("Proccessing a %s problem" %(problemType))
+		dataNameFields['in_layer'] = inputFields[problemType]
+		standardTextFile = standardText[problemType]
+	
+		searchDistance['in_layer'] = 1
+		
+		if not checkConfig():
+			arcpy.AddError("Config Error")
+			sys.exit(1)  #config did not check out, abort
+		
+
+		#run geoprocessing iterations
+		swapDict = {}
+		for layer in dataPath.keys():
+			if not layer == "in_layer":
+				result = auto_gp.featureIn(dataPath[layer],dataNameFields[layer],searchDistance[layer])
+				swapDict.update(result)
+				
+		auto_gp.cleanUp()
+		
+		#append input to swapdict
+		result = {}
+		for name,field in dataNameFields['in_layer'].iteritems():
+			result[name] = row.getValue(field) 
+		swapDict.update(result)
+
+		#error report
+		for k in dataNameFields.keys():
+			for item in dataNameFields[k].keys():
+				if not item in swapDict.keys(): arcpy.AddWarning("Value for %s from layer %s not found within %d projected Units" %(item,k,searchDistance[k]))
+		
+		#cost estimation
+		problemNormCost = vLookup(costTable,costTablePTField,problemType.upper(),costTableNormCostField)
+		costUnits = 'reported_units'
+		if problemType in ['vo','p','hef','hwb','di']: costUnits = 'reported_units'
+		elif problemType in ['dh']: costUnits = 'length'
+		elif problemType in ['ds','dpe']: costUnits = 'acres'
+		elif problemType in ['s']: 
+			swapDict['acres'] = float(swapDict['subsidence_diam'])*float(swapDict['subsidence_diam'])/4/43560*math.pi
+			costUnits = 'acres'
+		swapDict['cost'] = locale.format("%d",(float(swapDict[costUnits]) * float(problemNormCost)),grouping=True)
+		
+		#at this point the swapdict is made for everything but questions and date, lets add them
+		qList = {}
+		for field in arcpy.ListFields(dataPath['in_layer']):
+			if 'Q' == field.name[0].upper():
+				qList[field.name] = ''
+				
+		for k in qList.keys():
+			qList[k] = row.getValue(k)
+
+		for q,a in qList.iteritems():
+			if a ==1: 
+				swapDict[q+"_y"] = 'X'
+				swapDict[q+"_n"] = ''
+			else:
+				swapDict[q+"_y"] = ''
+				swapDict[q+"_n"] = 'X'
+		
+		
+		
+		#now we need todays date
+		#today = datetime.datetime.now()
+		#swapDict['date'] = today.strftime("%m/%d/%Y")
+		visitdate = swapDict['date']
+		swapDict['date'] = visitdate.strftime("%m-%d-%Y")
+		swapDict['filedate'] = visitdate.strftime("%Y%m%d")
+		
+		
+		#outputtime
+		padno = r"UNKNOWN_PAD"
+		try:
+			padno = swapDict['padno']
+		except KeyError:
+			arcpy.AddWarning("Unknown Pad")
+			
+		swapDict['padno'] = padno
+		
+		auto_tp = templateParser()
+	
+		#generate aum mine list
+		aum_list = '<ul>'
+		if dataNameFields['aum_mines'].keys()[0] in swapDict.keys():
+			for i in range(max_aum_mines+1):
+				aumDict = {}
+				for k in dataNameFields['aum_mines']:
+					if i-1==0: aumDict[k] = swapDict[k]
+					if k+str(i-1) in swapDict.keys():	aumDict[k] = swapDict[k+str(i-1)]
+				if not aumDict == {}: aum_list += '<li>'+auto_tp.swapText([aum_list_template],aumDict ) +'</li>'
+		else: aum_list += '<li> No AUM MINES Found within %d projected units</li>' %(searchDistance['aum_mines'])
+		aum_list += '</ul>'
+		
+		swapDict['aum_mine_list'] = aum_list	
+					
+		#generate standard text
+		text = open(standardTextFile)
+		if str(swapDict['priority']) == '1':
+			swapDict['standard_p1'] = auto_tp.swapText(text.readlines(),swapDict)
+			swapDict['standard_p2'] = ' '
+		elif str(swapDict['priority']) == '2':
+			swapDict['standard_p1'] = ' '
+			swapDict['standard_p2'] = auto_tp.swapText(text.readlines(),swapDict)
+		else:
+			arcpy.AddWarning('Unknown priority %s' %swapDict['priority'])
+		text.close()
+		
+		
+		
+		#cost standard text
+		cost_text = open(costStandardText)
+		swapDict['standard_cost'] = auto_tp.swapText(cost_text,swapDict)
+		cost_text.close()
+		
+
+		
+		auto_tp.writeResult(auto_tp.readTemplate(templatePath[swapDict['keyword'].lower()]),swapDict,outputFolder +'\\'+ outputFormat.format(**swapDict))
+		
+		#close
+		
+	pass
+	
+
+def checkInputs():
+	'''
+		Checks the user input
+			Does layer exist? 
+			Does it have records?
+			Batchmode, only one record?
+			
+	'''
+	#does input layer exist
+	if not arcpy.Exists(dataPath['in_layer']): 
+		arcpy.AddError("Input Layer\n%s\nDoes not exist or is not supported" %(dataPath['in_layer']))
+		return False
+	
+	#any records?
+	n_records = int(arcpy.GetCount_management(dataPath['in_layer']).getOutput(0))
+	if n_records == 0:
+		arcpy.AddError("No records found in input\n%s" %(dataPath['in_layer']))
+		return False
+		
+	#if not in batchmode, there must be only 1 input record
+	if not batchMode:
+		if not n_records  == 1: 
+			arcpy.AddError("%d records found in input\n%s\nBatchmode is not enabled" %(n_records,dataPath['in_layer']))
+			return False
+		
+	#check problem type field
+	if not templateToUseField in getFieldNames(dataPath['in_layer']):
+		arcpy.AddError("Problem Type field %s is not in input layer %s" %(templateToUseField,dataPath['in_layer']))
+		return False
+	
+	#if we get this far, yay!
+	return True
+
+def checkConfig():
+	'''
+		Checks the configuration of this script.
+			Are all data paths valid?
+			Are all fields present?
+			Do keys match?
+	'''
+	
+			
+	#both dictionaries should have identical keys
+	if not sorted(dataPath.keys()) == sorted(dataNameFields.keys()) or not sorted(dataPath.keys()) == sorted(searchDistance.keys()):
+		arcpy.AddError("Configuration dictionaries do not have identical keys.\n Please check configuration of these keys\n\t%s\n\t%s\n\t%s" %(sorted(dataPath.keys()),sorted(dataNameFields.keys()),sorted(searchDistance.keys())))
+		return False
+	
+	
+	#check all support data
+	for layer,path in dataPath.iteritems():
+		#does layer exist
+		if not arcpy.Exists(path): 
+			arcpy.AddError("Path to configured layer\n%s\nis invalid or not supported" %(path))
+			return False
+		#do the namefields exist
+		for name in dataNameFields[layer].values():
+			if not name in getFieldNames(path): 
+				arcpy.AddError("Field %s does not exist in layer\n%s\n" %(name,path))
+				return False
+				
+	#check cost stuff
+	if not arcpy.Exists(costTable):
+		arcpy.AddError("Path to configured cost table %s is invalid or not supported" %(costTable))
+		return False
+		
+	costFields = getFieldNames(costTable)
+	if not (costTablePTField in costFields and costTablePTField in costFields):
+		arcpy.AddError("Field %s or %s not in cost table %s" %(costTablePTField,costTablePTField,costTable))
+		return False
+				
+	#if we get this far, yay!
+	return True
+	
+def getFieldNames(layer):
+	''' Returns a list of field names that exist in the layer'''
+	fields = arcpy.ListFields(layer)
+	names = []
+	for field in fields:
+		names.append(field.name)
+		
+	return names
+	
+def vLookup(table,lookField,lookValue,targetField):
+	''' does a table look up in one field and returns value of another'''
+	lookrows = arcpy.SearchCursor(table)
+	targetValue = ''
+	for lookrow in lookrows:
+		if lookrow.getValue(lookField) == lookValue: targetValue = lookrow.getValue(targetField)
+	
+	del lookrows
+	return targetValue
+		
+#if this script is executed then we run the main function
+if __name__ == '__main__':
+	autorun()

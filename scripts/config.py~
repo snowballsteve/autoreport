@@ -1,0 +1,140 @@
+'''
+	This is the config file for the autoreport script.
+	Modify this for the project/task you as configuring this for
+
+'''
+
+
+#dictionary declarations
+dataPath = {}
+dataNameFields ={}
+searchDistance = {}
+inputFields = {}
+templatePath = {}
+standardText = {}
+
+'''CONFIG SECTION
+	dataPath[layername] = path
+	dataNameFields[layername] = dictionary of template variable, fieldnames
+	these two dictionaries must have identical keys, or you will get yelled at
+
+	templatePath[keyword] = path
+	inputFields[keyword] = dictionary of template fields/fields (not including questions, those are dynamic and must follow the perscribed format
+	searchDistance[layername] = max distance to look for a spatial intersection from centroid
+'''
+
+
+
+'''
+dictionary of GIS data paths
+any arcgis supported vector data should work
+
+example: dataPath['name'] = r'\path\to\data'
+'''
+dataPath['supportdata'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\fromODNR\Auto_PDF_Project\Reporting_Feature_Classes.gdb\SupportData_Project'
+dataPath['aum_mines'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\fromODNR\Auto_PDF_Project\Reporting_Feature_Classes.gdb\AUM_MINES'
+dataPath['surf_mines'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\fromODNR\Auto_PDF_Project\Reporting_Feature_Classes.gdb\Surf_Mines'
+dataPath['area_affected'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\fromODNR\Auto_PDF_Project\Reporting_Feature_Classes.gdb\Area_Affected'
+dataPath['amlis_pad'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\fromODNR\Auto_PDF_Project\Reporting_Feature_Classes.gdb\AMLIS_PAD'
+
+'''
+field to template text mappings for the above data paths
+fieldname:templatevalue
+
+templatevalues are the placeholders in the template such as {name} which will be replaced using the value in the field from the source data
+example: dataNameFields['name'] = {"field_name":"name","field_name2":"name2"}
+
+the keys of this dictionary must match the keys of dataPath
+'''
+dataNameFields['supportdata'] = {"county":"COUNTY","township":"Township_1","section":"SectionNum","quad":"QUAD_NAME","watershed":"HU_12_Name"}
+dataNameFields['aum_mines'] = {'mn_name':'MN_NAME','op_name':'OP_NAME','seams':'SEAMS','ab_dt':'AB_DT'}
+dataNameFields['surf_mines'] = {'pub_year':'Pub_Year'}
+dataNameFields['area_affected'] = {'holder':'Holder','app-date':'App_Date','permit':'Permit'}
+dataNameFields['amlis_pad'] = {'padno':'PA_NUMBER'}
+
+'''
+distance to search from input layer for intersecting features in projected units within each respective data source
+
+example: searchDistance['name'] = 1000
+would search for example 1000 feet from the input in layer 'name' for an intersection if the projection is in feet. Closest feature in this range is returned.
+'''
+searchDistance['supportdata'] = 10
+searchDistance['aum_mines'] = 6000
+searchDistance['surf_mines'] = 1000
+searchDistance['area_affected'] =  1000
+searchDistance['amlis_pad'] = 1000
+
+'''
+template files (must be plain text)
+
+example: templatePath['type'] = r'\path\to\template'
+the variable templateFieldToUse indicates which attribute of the input data indicates which template to use. The attribute value will be looked up to determine template file.
+If the attribute value was 'road' then templatePath['road'] will be the template.
+
+'''
+templateToUseField = 'PT_Abbrev'
+templatePath['vo'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\vo.htm'
+templatePath['dh'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\dh.htm'
+templatePath['ds'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\ds.htm'
+templatePath['s'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\s.htm'
+templatePath['p'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\p.htm'
+templatePath['di'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\di.htm'
+templatePath['dpe'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\dpe.htm'
+templatePath['hef'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\hef.htm'
+templatePath['hwb'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\hwb.htm'
+
+#standard text files
+standardText['ds'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_ds.txt'
+standardText['dh'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_dh.txt'
+standardText['vo'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_vo.txt'
+standardText['s'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_s.txt'
+standardText['p'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_p.txt'
+standardText['di'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_di.txt'
+standardText['dpe'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_dpe.txt'
+standardText['hef'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_hef.txt'
+standardText['hwb'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\standardtext_hwb.txt'
+
+
+#cost stuff
+costTable = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\Cost_Est.dbf'
+costTablePTField = 'PT_Abbrev'
+costTableNormCostField = 'Norm_Cost'
+costStandardText = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\deliverable\templates\costestimation.txt'
+
+#aum mine list template
+aum_list_template = u'{mn_name}, operated by {op_name}, mined the {seams} coal seam and was abandoned in {ab_dt}.'
+max_aum_mines = 3
+
+
+'''
+template codes and field values for problem geometry, don't change keys
+
+this behaves the same way as dataNameField, except it is for the configuration of data input via the toolbox window. the keys must match templatePath above
+'''
+#polygon types
+inputFields['ds'] = {'date':'Edit_Date','acres':'Acres','comments':'Comment','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+inputFields['dpe'] = {'date':'Edit_Date','acres':'Acres','comments':'Comment','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+
+#polyline types
+inputFields['dh'] = {'date':'Edit_Date','length':'Length_ft','priority':'Priority','keyword':'PT_Abbrev','comments':'Comment','staff':'Staff'}
+
+#point types
+inputFields['vo'] = {'date':'Edit_Date','comments':'Comment','reported_units':'Rep_Units','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+inputFields['s'] = {'date':'Edit_Date','comments':'Comment','reported_units':'Rep_Units','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff','subsidence_diam':'Sub_Diam'}
+inputFields['p'] = {'date':'Edit_Date','comments':'Comment','reported_units':'Rep_Units','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+inputFields['di'] = {'date':'Edit_Date','comments':'Comment','reported_units':'Rep_Units','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+inputFields['hef'] = {'date':'Edit_Date','comments':'Comment','reported_units':'Rep_Units','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+inputFields['hwb'] = {'date':'Edit_Date','comments':'Comment','reported_units':'Rep_Units','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+
+
+#be careful here
+batchMode = True #allow iteration over several features? if FALSE input must be a layer with a single feature (or selected feature)
+
+#file output format, filedate and padno are defined later
+outputFormat = u'{staff}_{priority}{keyword}_{filedate}_{padno}.htm'
+
+#
+#
+#END CONFIG
+#
+##########################################
