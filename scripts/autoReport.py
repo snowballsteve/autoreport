@@ -6,7 +6,7 @@
   Version -- 5
     
 '''
-import arcpy, sys, os, geoMethods, datetime, math, locale
+import arcpy, sys, os, geoMethods
 from geoMethods import geoProcessor
 from geoMethods import templateParser
 
@@ -98,11 +98,6 @@ def checkInputs():
 			arcpy.AddError("%d records found in input\n%s\nBatchmode is not enabled" %(n_records,dataPath['in_layer']))
 			return False
 		
-	#check problem type field
-	if not templateToUseField in getFieldNames(dataPath['in_layer']):
-		arcpy.AddError("Problem Type field %s is not in input layer %s" %(templateToUseField,dataPath['in_layer']))
-		return False
-	
 	#if we get this far, yay!
 	return True
 

@@ -29,7 +29,7 @@ any arcgis supported vector data should work
 
 example: dataPath['name'] = r'\path\to\data'
 '''
-dataPath['supportdata'] = r'C:\Users\porters1\Dropbox\Work\GVS_Work\AutoReport\fromODNR\Auto_PDF_Project\Reporting_Feature_Classes.gdb\SupportData_Project'
+dataPath['states'] = r'../example/states.shp'
 
 
 '''
@@ -41,8 +41,8 @@ example: dataNameFields['name'] = {"field_name":"name","field_name2":"name2"}
 
 the keys of this dictionary must match the keys of dataPath
 '''
-dataNameFields['supportdata'] = {"county":"COUNTY","township":"Township_1","section":"SectionNum","quad":"QUAD_NAME","watershed":"HU_12_Name"}
-
+dataNameFields['states'] = {"state_name":"STATE"}
+dataNameFields['in_layer']  = {'latitude':'lat','longitude':'long','staff_name':'staff','description':'comment','capture_date':'date'}
 
 '''
 distance to search from input layer for intersecting features in projected units within each respective data source
@@ -50,17 +50,16 @@ distance to search from input layer for intersecting features in projected units
 example: searchDistance['name'] = 1000
 would search for example 1000 feet from the input in layer 'name' for an intersection if the projection is in feet. Closest feature in this range is returned.
 '''
-searchDistance['supportdata'] = 10
+searchDistance['states'] = 1
 
-#polygon types
-inputFields  = {'date':'Edit_Date','acres':'Acres','comments':'Comment','priority':'Priority','keyword':'PT_Abbrev','staff':'Staff'}
+
 
 
 #be careful here
 batchMode = True #allow iteration over several features? if FALSE input must be a layer with a single feature (or selected feature)
 
-#file output format, filedate and padno are defined later
-outputFormat = u'{staff}_{priority}{keyword}_{filedate}_{padno}.htm'
+#file output format
+outputFormat = u'{staff_name}_{state_name}.md'
 
 #
 #
